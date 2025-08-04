@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 // Relay pin
-const int RELAY_PIN = 2; // Adjust as needed
+const int RELAY_PIN = 8; // Adjust as needed
 
 // Switch pins
 #define RUN_PIN 3
