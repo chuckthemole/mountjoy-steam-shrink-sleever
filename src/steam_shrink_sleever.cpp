@@ -2,7 +2,7 @@
 
 // Relay pins
 const int RELAY_PIN_1 = 8; // Relay 3 on shield
-const int RELAY_PIN_2 = 9; // Relay 4 on shield
+const int RELAY_PIN_2 = 12; // Relay 4 on shield
 
 // Timing variables
 unsigned long lastRelayToggle1 = 0;
