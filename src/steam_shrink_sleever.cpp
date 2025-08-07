@@ -1,94 +1,53 @@
 #include <Arduino.h>
 
-// Relay pin
-const int RELAY_PIN = 8; // Adjust as needed
-
-// Switch pins
-#define RUN_PIN 3
-#define JOG_PIN 4
-#define STOP_PIN 5
+// Relay pins
+const int RELAY_PIN_1 = 8; // Relay 3 on shield
+const int RELAY_PIN_2 = 9; // Relay 4 on shield
 
 // Timing variables
-const unsigned long reportInterval = 5000; // 5 seconds for switch reporting
-unsigned long lastReportTime = 0;
+unsigned long lastRelayToggle1 = 0;
+unsigned long lastRelayToggle2 = 0;
 
-enum State
-{
-    STOP,
-    RUN,
-    JOG,
-    UNKNOWN
-};
+const unsigned long interval1 = 1000; // 1 second for Relay 1
+const unsigned long interval2 = 1500; // 1.5 seconds for Relay 2
+
+bool relayState1 = false;
+bool relayState2 = false;
 
 void setup()
 {
     Serial.begin(9600);
 
-    pinMode(RELAY_PIN, OUTPUT);
-    digitalWrite(RELAY_PIN, LOW); // Start relay OFF
+    pinMode(RELAY_PIN_1, OUTPUT);
+    pinMode(RELAY_PIN_2, OUTPUT);
 
-    pinMode(RUN_PIN, INPUT_PULLUP);
-    pinMode(JOG_PIN, INPUT_PULLUP);
-    pinMode(STOP_PIN, INPUT_PULLUP);
+    digitalWrite(RELAY_PIN_1, LOW); // Start both relays OFF
+    digitalWrite(RELAY_PIN_2, LOW);
 
-    Serial.println("Relay control and switch state monitor started.");
-}
-
-State readSwitchState()
-{
-    if (digitalRead(STOP_PIN) == LOW)
-    {
-        return STOP;
-    }
-    else if (digitalRead(RUN_PIN) == LOW)
-    {
-        return RUN;
-    }
-    else if (digitalRead(JOG_PIN) == LOW)
-    {
-        return JOG;
-    }
-    return UNKNOWN;
+    Serial.println("Relay test started.");
 }
 
 void loop()
 {
-    static bool relayState = false;
-    static unsigned long lastRelayToggle = 0;
     unsigned long currentTime = millis();
 
-    // Relay toggle every 1 second
-    if (currentTime - lastRelayToggle >= 1000)
+    // Toggle Relay 1
+    if (currentTime - lastRelayToggle1 >= interval1)
     {
-        lastRelayToggle = currentTime;
-        relayState = !relayState;
-        digitalWrite(RELAY_PIN, relayState ? HIGH : LOW);
-        Serial.print("Relay ");
-        Serial.println(relayState ? "ON" : "OFF");
+        lastRelayToggle1 = currentTime;
+        relayState1 = !relayState1;
+        digitalWrite(RELAY_PIN_1, relayState1 ? HIGH : LOW);
+        Serial.print("Relay 1 ");
+        Serial.println(relayState1 ? "ON" : "OFF");
     }
 
-    // Switch state report every 5 seconds
-    if (currentTime - lastReportTime >= reportInterval)
+    // Toggle Relay 2
+    if (currentTime - lastRelayToggle2 >= interval2)
     {
-        lastReportTime = currentTime;
-
-        State currentState = readSwitchState();
-
-        Serial.print("Switch state: ");
-        switch (currentState)
-        {
-        case RUN:
-            Serial.println("RUN");
-            break;
-        case JOG:
-            Serial.println("JOG");
-            break;
-        case STOP:
-            Serial.println("STOP");
-            break;
-        default:
-            Serial.println("UNKNOWN (no active input)");
-            break;
-        }
+        lastRelayToggle2 = currentTime;
+        relayState2 = !relayState2;
+        digitalWrite(RELAY_PIN_2, relayState2 ? HIGH : LOW);
+        Serial.print("Relay 2 ");
+        Serial.println(relayState2 ? "ON" : "OFF");
     }
 }
