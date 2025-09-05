@@ -1,21 +1,25 @@
 #include <Arduino.h>
 
 // Relay pins
-const int RELAY_PIN_1 = 8;  // Relay 3 on shield
-const int RELAY_PIN_2 = 12; // Relay 4 on shield
+const int RELAY_PIN_1 = 8;  // Relay controlling piston UP
+const int RELAY_PIN_2 = 12; // Relay helping piston DOWN (opposite of Relay 1)
 
 // Potentiometer pin
 const int POT_PIN = A0;
 
-// Timing variables
+// Timing ranges
+const unsigned long FIXED_UP_TIME = 4000; // 4 seconds UP
+const int MIN_DOWN_TIME = 3000;           // 3 seconds minimum DOWN
+const int MAX_DOWN_TIME = 20000;          // 20 seconds maximum DOWN
+
+// State variables
 unsigned long lastRelayToggle1 = 0;
-unsigned long lastRelayToggle2 = 0;
 
-unsigned long interval1 = 1000; // Will be adjusted by potentiometer
-unsigned long interval2 = 1500; // Will also be adjusted
+unsigned long intervalUp = FIXED_UP_TIME;   // fixed UP time
+unsigned long intervalDown = MIN_DOWN_TIME; // variable DOWN time
+unsigned long currentInterval = FIXED_UP_TIME;
 
-bool relayState1 = false;
-bool relayState2 = false;
+bool relayState1 = false; // false = piston down, true = piston up
 
 void setup()
 {
@@ -25,53 +29,62 @@ void setup()
     pinMode(RELAY_PIN_2, OUTPUT);
 
     digitalWrite(RELAY_PIN_1, LOW);
-    digitalWrite(RELAY_PIN_2, LOW);
+    digitalWrite(RELAY_PIN_2, HIGH); // start with piston DOWN
 
     pinMode(POT_PIN, INPUT);
 
-    Serial.println("Relay test with potentiometer speed control started.");
+    Serial.println("Piston control: fixed UP (4s), variable DOWN (pot).");
 }
 
 void loop()
 {
     unsigned long currentTime = millis();
 
-    // Read potentiometer and map to interval (100ms to 2000ms)
+    // Read potentiometer and map to DOWN interval
     int potValue = analogRead(POT_PIN);
-    interval1 = map(potValue, 0, 1023, 100, 2000);
-    interval2 = map(potValue, 0, 1023, 150, 3000); // you can tweak these separately
+    intervalDown = map(potValue, 0, 1023, MIN_DOWN_TIME, MAX_DOWN_TIME);
 
-    // Print mapped value occasionally
+    // Debug info
     static unsigned long lastPrint = 0;
     if (currentTime - lastPrint >= 1000)
     {
         lastPrint = currentTime;
-        Serial.print("Potentiometer value: ");
+        Serial.print("Pot: ");
         Serial.print(potValue);
-        Serial.print(" | Interval1: ");
-        Serial.print(interval1);
-        Serial.print(" ms | Interval2: ");
-        Serial.print(interval2);
+        Serial.print(" | UP=");
+        Serial.print(intervalUp);
+        Serial.print(" ms, DOWN=");
+        Serial.print(intervalDown);
         Serial.println(" ms");
     }
 
-    // Toggle Relay 1
-    if (currentTime - lastRelayToggle1 >= interval1)
+    // ===== Relay 1 & 2 control =====
+    if (currentTime - lastRelayToggle1 >= currentInterval)
     {
         lastRelayToggle1 = currentTime;
         relayState1 = !relayState1;
-        digitalWrite(RELAY_PIN_1, relayState1 ? HIGH : LOW);
-        Serial.print("Relay 1 ");
-        Serial.println(relayState1 ? "ON" : "OFF");
-    }
 
-    // Toggle Relay 2
-    if (currentTime - lastRelayToggle2 >= interval2)
-    {
-        lastRelayToggle2 = currentTime;
-        relayState2 = !relayState2;
-        digitalWrite(RELAY_PIN_2, relayState2 ? HIGH : LOW);
-        Serial.print("Relay 2 ");
-        Serial.println(relayState2 ? "ON" : "OFF");
+        if (relayState1)
+        {
+            // Going UP (fixed 4s ON)
+            digitalWrite(RELAY_PIN_1, HIGH);
+            digitalWrite(RELAY_PIN_2, LOW); // opposite
+            currentInterval = intervalUp;
+
+            Serial.println("Relay 1 -> ON (piston UP for 4s)");
+            Serial.println("Relay 2 -> OFF");
+        }
+        else
+        {
+            // Going DOWN (variable OFF time)
+            digitalWrite(RELAY_PIN_1, LOW);
+            digitalWrite(RELAY_PIN_2, HIGH); // opposite
+            currentInterval = intervalDown;
+
+            Serial.print("Relay 1 -> OFF (piston DOWN for ");
+            Serial.print(intervalDown / 1000.0, 1);
+            Serial.println("s)");
+            Serial.println("Relay 2 -> ON");
+        }
     }
 }
